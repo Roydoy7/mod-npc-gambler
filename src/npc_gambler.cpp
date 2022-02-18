@@ -91,6 +91,10 @@ uint32 EnableSilver = 1;
 uint32 EnableCopper = 1;
 uint32 GamblerEmoteSpell;
 uint32 GamblerMessageTimer;
+// Money amount for bet equipment
+uint32 EquipmentAmount1 = 5;
+uint32 EquipmentAmount2 = 10;
+uint32 EquipmentAmount3 = 20;
 
 class GamblerConfig : public WorldScript
 {
@@ -122,6 +126,9 @@ public:
         EnableCopper = sConfigMgr->GetOption<uint32>("Gambler.EnableCopper", 1);
         GamblerEmoteSpell = sConfigMgr->GetOption<uint32>("Gambler.MessageTimer", 44940);
         GamblerMessageTimer = sConfigMgr->GetOption<uint32>("Gambler.MessageTimer", 60000);
+        EquipmentAmount1 = sConfigMgr->GetOption<uint32>("Gambler.EquipmentAmount1", 5);
+        EquipmentAmount2 = sConfigMgr->GetOption<uint32>("Gambler.EquipmentAmount2", 10);
+        EquipmentAmount3 = sConfigMgr->GetOption<uint32>("Gambler.EquipmentAmount3", 20);
 
         // Enforce Min/Max Time
         if (GamblerMessageTimer != 0)
@@ -202,22 +209,23 @@ public:
     }
 
     // Gossip Hello
-    bool OnGossipHello(Player * player, Creature * creature) override
+    bool OnGossipHello(Player* player, Creature* creature) override
     {
         std::ostringstream messageCoinType;
         std::ostringstream messagePocket;
         std::ostringstream messageJackpot;
+        std::ostringstream messageEquipment;
 
         player->PlayerTalkClass->ClearMenus();
 
         // Calculate player money and bet values
         Pocket = CalcMoney(player->GetMoney(), 0);
 
-        // For the high-rollers
+        // For the high-Rollers
         if (Pocket >= 50000000 && Bets == 0) // If they have 5000+ Gold
         {
             std::ostringstream messageTaunt;
-            messageTaunt << "Whadda we have here? A high-roller eh? Step right up " << player->GetName() << "!";
+            messageTaunt << "Whadda we have here? A high-Roller eh? Step right up " << player->GetName() << "!";
             player->GetSession()->SendNotification("%s", messageTaunt.str().c_str());
         }
 
@@ -227,25 +235,29 @@ public:
         // Clean up the display if using Copper or Silver
         if (Pocket >= 100000 && (MoneyType == 1 || MoneyType == 2)) {
             messagePocket << "Hi " << player->GetName() << ". I see you have PLENTY of " << MoneyTypeText << " to gamble.";
-        } else if (Pocket >= 10000000 && MoneyType == 3) {
+        }
+        else if (Pocket >= 10000000 && MoneyType == 3) {
             messagePocket << "Hi " << player->GetName() << ". I see you have PLENTY of " << MoneyTypeText << " to gamble.";
-        } else {
+        }
+        else {
             messagePocket << "Hi " << player->GetName() << ". I see you've got " << PlayerMoney << " " << MoneyTypeText << " to gamble.";
         }
 
         // Main Menu
         messageJackpot << "Place your bet. Today's Jackpot is " << Jackpot << " " << MoneyTypeText << ".";
         messageCoinType << "Coin Type: " << MoneyTypeText;
+        messageEquipment << "I'd like to bet for some equipments.";
         AddGossipItemFor(player, GOSSIP_ICON_CHAT, messagePocket.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 14);
         AddGossipItemFor(player, GOSSIP_ICON_TRAINER, "So, how does this game work?", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
         AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, messageCoinType.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 8);
         AddGossipItemFor(player, GOSSIP_ICON_MONEY_BAG, messageJackpot.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+        AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageEquipment.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 100);
         SendGossipMenuFor(player, 601020, creature->GetGUID());
         return true;
     }
 
     // Gossip Select
-    bool OnGossipSelect(Player * player, Creature * creature, uint32 sender, uint32 uiAction) override
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 uiAction) override
     {
         // Strings
         std::ostringstream Option1;
@@ -258,6 +270,12 @@ public:
         std::ostringstream CoinGold;
         std::ostringstream messageCoins;
         std::ostringstream messageInstruct;
+        std::ostringstream messageEquipmentWeapon;
+        std::ostringstream messageEquipmentAmmor;
+        std::ostringstream messageOption1Str;
+        std::ostringstream messageOption2Str;
+        std::ostringstream messageOption3Str;
+
 
         // Initialize
         player->PlayerTalkClass->ClearMenus();
@@ -270,7 +288,6 @@ public:
         // Main Menu
         switch (uiAction)
         {
-
             // Gamble Menu
         case GOSSIP_ACTION_INFO_DEF + 1:
             Option1 << Bet1 << " " << MoneyTypeText;
@@ -289,7 +306,7 @@ public:
 
             // Rules Menu
         case GOSSIP_ACTION_INFO_DEF + 2:
-            messageInstruct << "The rules are simple " << player->GetName() << ".. If you roll higher than 50, you win double the bet amount. Otherwise, you lose twice the bet amount. A roll of 100 wins the jackpot. Good Luck!";
+            messageInstruct << "The rules are simple " << player->GetName() << ".. If you Roll higher than 50, you win double the bet amount. Otherwise, you lose twice the bet amount. A Roll of 100 wins the jackpot. Good Luck!";
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, messageInstruct.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 14);
             AddGossipItemFor(player, GOSSIP_ICON_TALK, "Alright Skinny, I'm up for some gambling.", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
             player->PlayerTalkClass->SendGossipMenu(1, creature->GetGUID());
@@ -369,6 +386,65 @@ public:
 
             // Main Menu
         case GOSSIP_ACTION_INFO_DEF + 14:
+            player->PlayerTalkClass->ClearMenus();
+            OnGossipHello(player, creature);
+            break;
+            //Bet for equipment
+        case GOSSIP_ACTION_INFO_DEF + 100:
+            messageEquipmentWeapon << "Bet for weapon";
+            messageEquipmentAmmor << "Bet for ammor";
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageEquipmentWeapon.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 110);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageEquipmentAmmor.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 120);
+            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "Back", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 14);
+
+            player->PlayerTalkClass->SendGossipMenu(1, creature->GetGUID());
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 110:
+            messageOption1Str << "I'd like to spend " << FormatMoney(EquipmentAmount1 * GetMoneyRateForWeapon(player)) << ".";
+            messageOption2Str << "I'd like to spend " << FormatMoney(EquipmentAmount2 * GetMoneyRateForWeapon(player)) << ".";
+            messageOption3Str << "I'd like to spend " << FormatMoney(EquipmentAmount3 * GetMoneyRateForWeapon(player)) << ".";
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption1Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 111);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption2Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 112);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption3Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 113);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Back", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 199);
+
+            player->PlayerTalkClass->SendGossipMenu(1, creature->GetGUID());
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 120:
+            messageOption1Str << "I'd like to spend " << FormatMoney(EquipmentAmount1 * GetMoneyRateForAmmor(player)) << ".";
+            messageOption2Str << "I'd like to spend " << FormatMoney(EquipmentAmount2 * GetMoneyRateForAmmor(player)) << ".";
+            messageOption3Str << "I'd like to spend " << FormatMoney(EquipmentAmount3 * GetMoneyRateForAmmor(player)) << ".";
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption1Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 121);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption2Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 122);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, messageOption3Str.str(), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 123);
+            AddGossipItemFor(player, GOSSIP_ICON_VENDOR, "Back", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 199);
+
+            player->PlayerTalkClass->SendGossipMenu(1, creature->GetGUID());
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 111:
+            OnGossipSelectEquipment(player, creature, 0, 110, 1);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 112:
+            OnGossipSelectEquipment(player, creature, 0, 110, 2);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 113:
+            OnGossipSelectEquipment(player, creature, 0, 110, 3);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 121:
+            OnGossipSelectEquipment(player, creature, 0, 120, 1);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 122:
+            OnGossipSelectEquipment(player, creature, 0, 120, 2);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 123:
+            OnGossipSelectEquipment(player, creature, 0, 120, 3);
+            break;
+        case GOSSIP_ACTION_INFO_DEF + 199:
+            player->PlayerTalkClass->ClearMenus();
+            OnGossipSelect(player, creature, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 100);
+            break;
+            //Main Menu
+        default:
             player->PlayerTalkClass->ClearMenus();
             OnGossipHello(player, creature);
             break;
@@ -474,10 +550,276 @@ public:
         return true;
     }
 
+    bool OnGossipSelectEquipment(Player* player, Creature* creature, uint32 /* sender */, uint32 option, uint32 betLevel)
+    {
+        player->PlayerTalkClass->ClearMenus();
+        int winLine = 75;
+
+        int classType = 2;
+        switch (option)
+        {
+            //Weapon
+        case 110:
+            classType = 2;
+            break;
+            //Ammor
+        case 120:
+            classType = 4;
+            break;
+        }
+
+        int32 money = 0;
+        //Money
+        switch (betLevel)
+        {
+        case 1:
+            money = EquipmentAmount1;
+            break;
+        case 2:
+            money = EquipmentAmount2;
+            break;
+        case 3:
+            money = EquipmentAmount3;
+            break;
+        }
+
+        if (!player->HasEnoughMoney(money * 10000))
+        {
+            std::ostringstream messageNotEnoughMoney;
+            messageNotEnoughMoney << "Sorry, at least " << money << " Gold is needed";
+            creature->Whisper(messageNotEnoughMoney.str().c_str(), LANG_UNIVERSAL, player);
+            //Back to main menu.
+            player->PlayerTalkClass->ClearMenus();
+            OnGossipHello(player, creature);
+            return false;
+        }
+        else
+        {
+            //Check if player's bag is full.
+            std::ostringstream query;
+            query << "SELECT entry FROM item_template WHERE class = '" << classType << "' AND Quality=1 LIMIT 1";
+            QueryResult qr = WorldDatabase.Query(query.str());
+            int itemId = qr->Fetch()[0].Get<int>();
+            ItemPosCountVec dest;
+            InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1);
+            if (msg != EQUIP_ERR_OK)
+            {
+                std::ostringstream messageAction;
+                messageAction << "Sorry, but your bag is full.";
+                creature->Whisper(messageAction.str().c_str(), LANG_UNIVERSAL, player);
+                OnGossipSelect(player, creature, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 100);
+                return false;
+            }
+        }
+
+        //Transfer money
+        player->ModifyMoney(-money * 10000);
+
+        // Dice Roll
+        uint32 Roll = 0;
+
+        // Generate a "random" number
+        Roll = urand(1, 100);
+        Bets++;
+
+        // The house always wins (discourage spamming for the jackpot)
+        if (Bets >= 10 && Roll == 100)
+        {
+            // If they have bet 10 times this session, decrement their Roll
+            // by 1 to prevent a Roll of 100 and hitting the jackpot at 50% chance.
+            uint32 rand = urand(0, 100);
+            Roll -= rand % 2;
+        }
+
+        // Give a little help
+        if (Losses >= 5 && Roll < winLine)
+        {
+            std::ostringstream messageHelp;
+            messageHelp << "Lady luck isn't on your side tonight " << player->GetName() << ".";
+            creature->Whisper(messageHelp.str().c_str(), LANG_UNIVERSAL, player);
+            Roll = Roll + 35;
+            Losses = 0;
+        }
+
+        uint8 playerLevel = player->getLevel();
+        uint32 itemMaxLevel = playerLevel + 5;
+        uint32 itemMinLevel = playerLevel - 5;
+        if (itemMaxLevel > 100)
+            itemMaxLevel = 100;
+
+        if (itemMinLevel > 100)
+            itemMinLevel = 95;
+        std::ostringstream itemLevelCriteria;
+        itemLevelCriteria << "AND RequiredLevel BETWEEN '" << itemMinLevel << "' AND '" << itemMaxLevel << "' ";
+
+        //Jackpot
+        if (Roll == 100)
+        {
+            std::ostringstream query;
+            query << "SELECT entry FROM item_template WHERE ";
+            query << "class = '" << classType << "' ";
+
+            int quality = 2;
+            switch (betLevel)
+            {
+            case 1:
+                query << "AND Quality in (2, 3) ";
+                break;
+            case 2:
+                query << "AND Quality in (3, 4) ";
+                break;
+            case 3:
+                query << "AND Quality = 4 ";
+                break;
+            }
+
+            query << "AND Quality = '" << quality << "' ";
+            query << itemLevelCriteria.str();
+            query << "ORDER BY RAND() LIMIT 1 ";
+
+            QueryResult qr = WorldDatabase.Query(query.str());
+            int itemId = qr->Fetch()[0].Get<int>();
+            ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId);
+
+            ItemPosCountVec dest;
+            InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1);
+            if (msg == EQUIP_ERR_OK)
+                player->StoreNewItem(dest, itemId, true, itemTemplate->RandomProperty);
+
+            //Message
+            std::ostringstream messageAction;
+            std::ostringstream messageNotice;
+            player->PlayDirectSound(3337);
+            player->CastSpell(player, 47292);
+            player->CastSpell(player, 44940);
+
+            messageAction << "The bones come to rest with a total Roll of " << Roll << ".";
+            messageNotice << "WOWZERS " << player->GetName() << "!! You hit the jackpot!";
+            creature->Whisper(messageAction.str().c_str(), LANG_UNIVERSAL, player);
+            player->GetSession()->SendAreaTriggerMessage("%s", messageNotice.str().c_str());
+            CloseGossipMenuFor(player);
+            creature->HandleEmoteCommand(EMOTE_ONESHOT_APPLAUD);
+        }
+
+        if (Roll >= winLine)
+        {
+            std::ostringstream query;
+            query << "SELECT entry FROM item_template WHERE ";
+            query << "class = '" << classType << "' ";
+
+            switch (betLevel)
+            {
+            case 1:
+                query << "AND Quality in (1, 2) ";
+                break;
+            case 2:
+                query << "AND Quality in (1, 2, 3) ";
+                break;
+            case 3:
+                query << "AND Quality in (2, 3, 4) ";
+                break;
+            }
+            query << itemLevelCriteria.str();
+            query << "ORDER BY RAND() LIMIT 1 ";
+            QueryResult qr = WorldDatabase.Query(query.str());
+            int itemId = qr->Fetch()[0].Get<int>();
+            ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId);
+
+            ItemPosCountVec dest;
+            InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, 1);
+            if (msg == EQUIP_ERR_OK)
+                player->StoreNewItem(dest, itemId, true, itemTemplate->RandomProperty);
+
+            //Message
+            std::ostringstream messageAction;
+            std::ostringstream messageNotice;
+            Wins = Wins + 1;
+            Losses = 0;
+            player->CastSpell(player, 47292);
+            messageAction << "The bones come to rest with a total Roll of " << Roll << ".";
+            messageNotice << "Congratulations " << player->GetName() << ", You've won an equipment!";
+            creature->Whisper(messageAction.str().c_str(), LANG_UNIVERSAL, player);
+            ChatHandler(player->GetSession()).SendSysMessage(messageNotice.str().c_str());
+            creature->HandleEmoteCommand(EMOTE_ONESHOT_APPLAUD);
+        }
+        else
+        {
+            std::ostringstream messageAction;
+            std::ostringstream messageNotice;
+            Losses = Losses + 1;
+            messageAction << "The bones come to rest with a total Roll of " << Roll << ".";
+            messageNotice << "Tough luck " << player->GetName() << ", you've lost.";
+            creature->Whisper(messageAction.str().c_str(), LANG_UNIVERSAL, player);
+            ChatHandler(player->GetSession()).SendSysMessage(messageNotice.str().c_str());
+            creature->HandleEmoteCommand(EMOTE_ONESHOT_QUESTION);
+        }
+
+        OnGossipSelect(player, creature, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + option);
+        return true;
+    }
+
+    // Money rates
+    std::map<uint32, uint32> RatesDictWeapon = {
+            {0, 100},
+            {1, 200},
+            {2, 1000},
+            {3, 2000},
+            {4, 5000},
+            {5, 10000},
+            {6, 10000},
+            {7, 10000},
+            {8, 10000},
+            {9, 10000},
+    };
+
+    uint32 GetMoneyRateForWeapon(Player* player)
+    {
+        uint32 level = player->getLevel();
+        level /= 10;
+        return RatesDictWeapon[level];
+    }
+
+    std::map<uint32, uint32> RatesDictAmmor = {
+            {0, 100},
+            {1, 200},
+            {2, 1000},
+            {3, 2000},
+            {4, 2000},
+            {5, 5000},
+            {6, 5000},
+            {7, 10000},
+            {8, 10000},
+            {9, 10000},
+    };
+
+    std::string FormatMoney(uint32 money)
+    {
+        uint32 copper = money % 100;
+        uint32 silver = (money / 100) % 100;
+        uint32 gold = (money / 10000) % 100;
+        std::ostringstream str;
+        if (gold > 0)
+            str << " " << gold << " gold";
+
+        if (silver > 0)
+            str << " " << silver << " silver";
+
+        if (copper > 0)
+            str << " " << copper << " copper";
+        return str.str();
+    }
+
+    uint32 GetMoneyRateForAmmor(Player* player)
+    {
+        uint32 level = player->getLevel();
+        level /= 10;
+        return RatesDictAmmor[level];
+    }
+
     // Passive Emotes
     struct NPC_PassiveAI : public ScriptedAI
     {
-        NPC_PassiveAI(Creature * creature) : ScriptedAI(creature) { }
+        NPC_PassiveAI(Creature* creature) : ScriptedAI(creature) { }
 
         uint32 Choice;
         uint32 MessageTimer;
@@ -545,7 +887,7 @@ public:
     };
 
     // CREATURE AI
-    CreatureAI * GetAI(Creature * creature) const override
+    CreatureAI* GetAI(Creature* creature) const override
     {
         return new NPC_PassiveAI(creature);
     }

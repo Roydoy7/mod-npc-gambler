@@ -20,6 +20,12 @@ defined in the configuration. It's a nice way for players to make a little extra
 - The jackpot can only be hit in the first 10 rolls of each session to discourage spam.
 - A little help is given to players losing 5 rolls in a row.
 
+#### Gamble on equipment
+- A roll of 75 or higher wins a weapon or ammor.
+- The weapon or ammor's requied level is +-5 of the player's level.
+- A roll of 100 will hit the jackpot and reward a better item.
+- The amount of a bet is set dynamically denpents on player's level.
+
 ### To-Do
 
 - Track and display jackpot winners/dates.
@@ -35,6 +41,7 @@ defined in the configuration. It's a nice way for players to make a little extra
 
 ### Version
 
+- v2022.02.18 - Add equipment gambling feature.
 - v2019.04.17 - Fix display of win/lose amount for values 100 or above, applicable to copper/silver/gold
 - v2019.04.15 - Ported to AzerothCore by gtao725 (https://github.com/gtao725/)
 - v2019.02.13 - Redesign, Add Coin Type Options, Update AI

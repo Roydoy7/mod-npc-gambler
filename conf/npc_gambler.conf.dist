@@ -59,3 +59,12 @@ Gambler.Amount5 = 20
 #  Default: 50
 # -------------------------------------------------------------------------------------
 Gambler.Jackpot = 50
+
+# -------------------------------------------------------------------------------------
+#  Gambling amounts for equipment.
+#  The base amount rates will spend on equipment bet.
+#  Default: 5, 25, 100
+# -------------------------------------------------------------------------------------
+Gambler.EquipmentAmount1 = 5
+Gambler.EquipmentAmount2 = 10
+Gambler.EquipmentAmount3 = 20
