@@ -583,10 +583,11 @@ public:
             break;
         }
 
-        if (!player->HasEnoughMoney(money * 10000))
+        int32 amount = money * GetMoneyRateForWeapon(player);
+        if (!player->HasEnoughMoney(amount))
         {
             std::ostringstream messageNotEnoughMoney;
-            messageNotEnoughMoney << "Sorry, at least " << money << " Gold is needed";
+            messageNotEnoughMoney << "Sorry, at least " << FormatMoney(amount) << " is needed";
             creature->Whisper(messageNotEnoughMoney.str().c_str(), LANG_UNIVERSAL, player);
             //Back to main menu.
             player->PlayerTalkClass->ClearMenus();
